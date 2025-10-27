@@ -45,10 +45,17 @@ class DatasetViewSet(viewsets.ModelViewSet):
             # Limitar a las primeras 20 filas para preview
             preview_df = df.head(20)
             
+            # Reemplazar NaN con None en los datos para serialización JSON
+            preview_records = preview_df.to_dict('records')
+            for record in preview_records:
+                for key, value in record.items():
+                    if pd.isna(value):
+                        record[key] = None
+            
             # Preparar datos para el serializer
             preview_data = {
                 'columns': df.columns.tolist(),
-                'data': preview_df.to_dict('records'),
+                'data': preview_records,
                 'total_rows': len(df),
                 'showing_rows': len(preview_df),
                 'data_types': {col: str(dtype) for col, dtype in df.dtypes.items()},
@@ -60,12 +67,19 @@ class DatasetViewSet(viewsets.ModelViewSet):
             numeric_columns = df.select_dtypes(include=[np.number]).columns
             for col in numeric_columns:
                 if not df[col].isnull().all():
+                    # Reemplazar NaN con None para serialización JSON
+                    mean_val = df[col].mean()
+                    median_val = df[col].median()
+                    std_val = df[col].std()
+                    min_val = df[col].min()
+                    max_val = df[col].max()
+                    
                     preview_data['basic_stats'][col] = {
-                        'mean': float(df[col].mean()),
-                        'median': float(df[col].median()),
-                        'std': float(df[col].std()),
-                        'min': float(df[col].min()),
-                        'max': float(df[col].max()),
+                        'mean': None if pd.isna(mean_val) else float(mean_val),
+                        'median': None if pd.isna(median_val) else float(median_val),
+                        'std': None if pd.isna(std_val) else float(std_val),
+                        'min': None if pd.isna(min_val) else float(min_val),
+                        'max': None if pd.isna(max_val) else float(max_val),
                     }
             
             serializer = DatasetPreviewSerializer(preview_data)
@@ -276,7 +290,11 @@ class DatasetViewSet(viewsets.ModelViewSet):
         
         # 5. Manejar valores nulos
         null_strategy = config['null_strategy']
-        target_columns = config.get('target_columns', df.columns.tolist())
+        target_columns = config.get('target_columns', [])
+        
+        # Si target_columns está vacío, aplicar a todas las columnas
+        if not target_columns or len(target_columns) == 0:
+            target_columns = df.columns.tolist()
         
         if null_strategy == 'drop':
             df = df.dropna(subset=target_columns)
@@ -492,9 +510,16 @@ class CleanedDatasetViewSet(viewsets.ModelViewSet):
             # Limitar a las primeras 20 filas para preview
             preview_df = df.head(20)
             
+            # Reemplazar NaN con None en los datos para serialización JSON
+            preview_records = preview_df.to_dict('records')
+            for record in preview_records:
+                for key, value in record.items():
+                    if pd.isna(value):
+                        record[key] = None
+            
             preview_data = {
                 'columns': df.columns.tolist(),
-                'data': preview_df.to_dict('records'),
+                'data': preview_records,
                 'total_rows': len(df),
                 'showing_rows': len(preview_df),
                 'data_types': {col: str(dtype) for col, dtype in df.dtypes.items()},
@@ -506,12 +531,19 @@ class CleanedDatasetViewSet(viewsets.ModelViewSet):
             numeric_columns = df.select_dtypes(include=[np.number]).columns
             for col in numeric_columns:
                 if not df[col].isnull().all():
+                    # Reemplazar NaN con None para serialización JSON
+                    mean_val = df[col].mean()
+                    median_val = df[col].median()
+                    std_val = df[col].std()
+                    min_val = df[col].min()
+                    max_val = df[col].max()
+                    
                     preview_data['basic_stats'][col] = {
-                        'mean': float(df[col].mean()),
-                        'median': float(df[col].median()),
-                        'std': float(df[col].std()),
-                        'min': float(df[col].min()),
-                        'max': float(df[col].max()),
+                        'mean': None if pd.isna(mean_val) else float(mean_val),
+                        'median': None if pd.isna(median_val) else float(median_val),
+                        'std': None if pd.isna(std_val) else float(std_val),
+                        'min': None if pd.isna(min_val) else float(min_val),
+                        'max': None if pd.isna(max_val) else float(max_val),
                     }
             
             serializer = DatasetPreviewSerializer(preview_data)
