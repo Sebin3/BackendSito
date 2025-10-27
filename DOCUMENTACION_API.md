@@ -222,7 +222,13 @@ Authorization: Bearer {token}
 Content-Type: application/json
 ```
 
-**Ejemplo 1 - Limpieza Básica (Recomendada):**
+---
+
+## **📋 GUÍA COMPLETA DE LIMPIEZA DE DATOS**
+
+### **🎯 Casos de Uso Comunes**
+
+#### **Ejemplo 1 - Limpieza Básica (Principiantes):**
 ```json
 {
     "null_strategy": "fill_median",
@@ -232,8 +238,18 @@ Content-Type: application/json
     "trim_whitespace": true
 }
 ```
+**¿Qué hace?**
+- ✅ Rellena valores nulos con la mediana (números) o moda (texto)
+- ✅ Aplica a TODAS las columnas (target_columns vacío)
+- ✅ Elimina filas duplicadas
+- ✅ Convierte texto a números automáticamente
+- ✅ Elimina espacios extra en textos
 
-**Ejemplo 2 - Limpieza para Machine Learning:**
+**Ideal para:** Limpieza general de datos antes de análisis
+
+---
+
+#### **Ejemplo 2 - Preparar para Machine Learning:**
 ```json
 {
     "null_strategy": "fill_median",
@@ -242,120 +258,386 @@ Content-Type: application/json
     "remove_outliers": true,
     "outlier_method": "iqr",
     "standardize_data": true,
+    "numeric_columns": ["edad", "salario", "experiencia"],
     "convert_data_types": true,
     "trim_whitespace": true
 }
 ```
+**¿Qué hace?**
+- ✅ Rellena nulos con mediana/moda
+- ✅ Elimina duplicados
+- ✅ Elimina valores atípicos usando IQR
+- ✅ Estandariza columnas numéricas (media=0, std=1)
+- ✅ Convierte tipos de datos
 
-**Ejemplo 3 - Limpieza con Valores Personalizados:**
-```json
-{
-    "null_strategy": "fill_median",
-    "target_columns": [],
-    "custom_fill_values": {
-        "nombre": "Sin especificar",
-        "departamento": "Sin asignar"
-    },
-    "remove_duplicates": true,
-    "convert_data_types": true,
-    "trim_whitespace": true
-}
-```
+**Ideal para:** Entrenar modelos de Machine Learning
 
-**Ejemplo 4 - Limpieza Agresiva (Eliminar nulos):**
+---
+
+#### **Ejemplo 3 - Eliminar Filas con Nulos (Agresivo):**
 ```json
 {
     "null_strategy": "drop",
     "target_columns": [],
     "remove_duplicates": true,
+    "remove_outliers": false,
+    "convert_data_types": true,
+    "trim_whitespace": true
+}
+```
+**¿Qué hace?**
+- ❌ **ELIMINA** filas que tengan **cualquier valor nulo**
+- ✅ Elimina duplicados
+- ✅ Convierte tipos de datos
+
+**⚠️ ADVERTENCIA:** Puede eliminar muchas filas. Úsalo solo si tienes suficientes datos.
+
+**Ideal para:** Datasets grandes donde puedes permitirte perder filas
+
+---
+
+#### **Ejemplo 4 - Eliminar Nulos Solo en Columnas Específicas:**
+```json
+{
+    "null_strategy": "drop",
+    "target_columns": ["edad", "salario"],
+    "remove_duplicates": true,
+    "convert_data_types": true
+}
+```
+**¿Qué hace?**
+- ❌ Elimina filas solo si `edad` o `salario` tienen nulos
+- ✅ Ignora nulos en otras columnas (como `departamento`, `nombre`)
+- ✅ Elimina duplicados
+
+**Ideal para:** Cuando solo ciertas columnas son críticas
+
+---
+
+#### **Ejemplo 5 - Rellenar con Valores Personalizados:**
+```json
+{
+    "null_strategy": "fill_custom",
+    "target_columns": [],
+    "custom_fill_value": "Sin especificar",
+    "custom_fill_values": {
+        "nombre": "Anónimo",
+        "departamento": "Sin asignar",
+        "edad": 0,
+        "salario": 0
+    },
+    "remove_duplicates": true,
+    "trim_whitespace": true
+}
+```
+**¿Qué hace?**
+- ✅ Rellena `nombre` con "Anónimo"
+- ✅ Rellena `departamento` con "Sin asignar"
+- ✅ Rellena `edad` y `salario` con 0
+- ✅ Otras columnas usan "Sin especificar"
+
+**Ideal para:** Cuando necesitas valores específicos por columna
+
+---
+
+#### **Ejemplo 6 - Normalización para Visualización:**
+```json
+{
+    "null_strategy": "fill_median",
+    "target_columns": [],
+    "remove_duplicates": true,
+    "normalize_data": true,
+    "numeric_columns": ["ventas", "cantidad", "precio"],
+    "convert_data_types": true
+}
+```
+**¿Qué hace?**
+- ✅ Rellena nulos con mediana
+- ✅ Normaliza valores entre 0 y 1 (MinMaxScaler)
+- ✅ Solo normaliza columnas especificadas
+
+**Ideal para:** Gráficos y visualizaciones donde necesitas escala uniforme
+
+---
+
+#### **Ejemplo 7 - Limpieza Conservadora (Mantener Datos):**
+```json
+{
+    "null_strategy": "fill_mode",
+    "target_columns": [],
+    "remove_duplicates": false,
+    "remove_outliers": false,
+    "convert_data_types": false,
+    "trim_whitespace": true
+}
+```
+**¿Qué hace?**
+- ✅ Rellena nulos con el valor más frecuente
+- ✅ NO elimina duplicados
+- ✅ NO elimina outliers
+- ✅ NO convierte tipos de datos
+- ✅ Solo limpia espacios
+
+**Ideal para:** Cuando quieres preservar la mayor cantidad de datos posible
+
+---
+
+### **📖 REFERENCIA COMPLETA DE PARÁMETROS**
+
+#### **1. null_strategy (OBLIGATORIO)**
+
+Define cómo manejar valores nulos (NaN, null, vacíos):
+
+| Estrategia | Descripción | Cuándo Usar |
+|------------|-------------|-------------|
+| `drop` | Elimina filas con nulos | Tienes muchos datos y puedes perder filas |
+| `fill_mean` | Rellena con promedio | Columnas numéricas con distribución normal |
+| `fill_median` | Rellena con mediana | Columnas numéricas con outliers |
+| `fill_mode` | Rellena con valor más frecuente | Columnas categóricas (texto) |
+| `fill_forward` | Copia valor anterior | Datos de series temporales |
+| `fill_backward` | Copia valor siguiente | Datos de series temporales |
+| `fill_interpolate` | Interpolación lineal | Series temporales numéricas |
+| `fill_zero` | Rellena con 0 | Cuando 0 tiene sentido (ej: ventas) |
+| `fill_custom` | Valor personalizado | Necesitas control total |
+
+**Ejemplo:**
+```json
+{
+    "null_strategy": "fill_median"
+}
+```
+
+---
+
+#### **2. target_columns (OPCIONAL)**
+
+Define qué columnas se verán afectadas por la limpieza:
+
+| Valor | Comportamiento |
+|-------|----------------|
+| `[]` (vacío) | Aplica a **TODAS** las columnas |
+| `["col1", "col2"]` | Solo aplica a columnas especificadas |
+
+**Ejemplos:**
+```json
+// Aplicar a todas las columnas
+{
+    "null_strategy": "drop",
+    "target_columns": []
+}
+
+// Solo aplicar a edad y salario
+{
+    "null_strategy": "drop",
+    "target_columns": ["edad", "salario"]
+}
+```
+
+---
+
+#### **3. custom_fill_value (OPCIONAL)**
+
+Valor único para rellenar TODAS las columnas con `fill_custom`:
+
+**Ejemplo:**
+```json
+{
+    "null_strategy": "fill_custom",
+    "custom_fill_value": "Sin datos"
+}
+```
+
+---
+
+#### **4. custom_fill_values (OPCIONAL)**
+
+Valores específicos por columna (sobrescribe `custom_fill_value`):
+
+**Ejemplo:**
+```json
+{
+    "null_strategy": "fill_custom",
+    "custom_fill_values": {
+        "nombre": "Anónimo",
+        "edad": 0,
+        "departamento": "Sin asignar"
+    }
+}
+```
+
+---
+
+#### **5. remove_duplicates (OPCIONAL)**
+
+Elimina filas completamente duplicadas:
+
+**Ejemplo:**
+```json
+{
+    "remove_duplicates": true  // Eliminar duplicados
+}
+```
+
+---
+
+#### **6. remove_outliers (OPCIONAL)**
+
+Elimina valores atípicos (muy altos o muy bajos):
+
+**Ejemplo:**
+```json
+{
     "remove_outliers": true,
+    "outlier_method": "iqr",
+    "numeric_columns": ["edad", "salario"]
+}
+```
+
+---
+
+#### **7. outlier_method (OPCIONAL)**
+
+Método para detectar outliers:
+
+| Método | Descripción | Agresividad |
+|--------|-------------|-------------|
+| `iqr` | Rango Intercuartílico (Q1-Q3) | Moderada ⭐⭐⭐ |
+| `zscore` | Desviación estándar (Z-score) | Alta ⭐⭐⭐⭐ |
+| `isolation_forest` | Machine Learning | Muy Alta ⭐⭐⭐⭐⭐ |
+
+**Ejemplo:**
+```json
+{
+    "remove_outliers": true,
+    "outlier_method": "iqr"
+}
+```
+
+---
+
+#### **8. normalize_data (OPCIONAL)**
+
+Escala valores entre 0 y 1 (MinMaxScaler):
+
+**Antes:** `[10, 50, 100]`  
+**Después:** `[0.0, 0.44, 1.0]`
+
+**Ejemplo:**
+```json
+{
+    "normalize_data": true,
+    "numeric_columns": ["edad", "salario"]
+}
+```
+
+---
+
+#### **9. standardize_data (OPCIONAL)**
+
+Estandariza con media=0 y desviación=1 (Z-score):
+
+**Antes:** `[10, 50, 100]`  
+**Después:** `[-1.22, 0.0, 1.22]`
+
+**Ejemplo:**
+```json
+{
+    "standardize_data": true,
+    "numeric_columns": ["edad", "salario"]
+}
+```
+
+---
+
+#### **10. numeric_columns (OPCIONAL)**
+
+Columnas numéricas para normalizar/estandarizar/outliers:
+
+**Ejemplo:**
+```json
+{
+    "standardize_data": true,
+    "numeric_columns": ["edad", "salario", "experiencia"]
+}
+```
+
+---
+
+#### **11. remove_empty_rows (OPCIONAL)**
+
+Elimina filas donde **TODAS** las columnas son nulas:
+
+**Ejemplo:**
+```json
+{
+    "remove_empty_rows": true
+}
+```
+
+---
+
+#### **12. remove_empty_columns (OPCIONAL)**
+
+Elimina columnas donde **TODOS** los valores son nulos:
+
+**Ejemplo:**
+```json
+{
+    "remove_empty_columns": true
+}
+```
+
+---
+
+#### **13. convert_data_types (OPCIONAL)**
+
+Convierte automáticamente texto a números si es posible:
+
+**Antes:** `["123", "456", "789"]` (texto)  
+**Después:** `[123, 456, 789]` (números)
+
+**Ejemplo:**
+```json
+{
     "convert_data_types": true
 }
 ```
 
 ---
 
-### **Opciones de Limpieza Disponibles:**
+#### **14. trim_whitespace (OPCIONAL)**
 
-#### **null_strategy (Obligatorio):**
-- `drop` - Eliminar filas con valores nulos
-- `fill_mean` - Rellenar con media (promedio)
-- `fill_median` - Rellenar con mediana (valor del medio)
-- `fill_mode` - Rellenar con moda (más frecuente)
-- `fill_forward` - Rellenar con valor anterior
-- `fill_backward` - Rellenar con valor siguiente
-- `fill_interpolate` - Interpolación lineal
-- `fill_zero` - Rellenar con cero
-- `fill_custom` - Valor personalizado
+Elimina espacios al inicio/final de textos:
 
-#### **target_columns (Opcional):**
-- Array de columnas específicas: `["edad", "salario"]`
-- Vacío `[]` para aplicar a todas las columnas
+**Antes:** `"  Juan  "`  
+**Después:** `"Juan"`
 
-#### **custom_fill_value (Opcional):**
-- Valor único para todas las columnas: `"Sin especificar"`
-- Solo con `fill_custom`
-
-#### **custom_fill_values (Opcional):**
-- Valores específicos por columna: `{"nombre": "Sin nombre", "ciudad": "N/A"}`
-- Funciona con `fill_median` y `fill_custom`
-- Sobrescribe la estrategia general para columnas específicas
-
-#### **remove_duplicates (Opcional):**
-- `true` - Eliminar filas duplicadas
-- `false` - Mantener duplicados
-
-#### **remove_outliers (Opcional):**
-- `true` - Eliminar valores atípicos
-- `false` - Mantener todos los valores
-
-#### **outlier_method (Opcional):**
-- `iqr` - Rango Intercuartílico (recomendado)
-- `zscore` - Z-Score (más agresivo)
-- `isolation_forest` - Machine Learning
-
-#### **normalize_data (Opcional):**
-- `true` - Escalar valores entre 0 y 1
-- `false` - Mantener valores originales
-
-#### **standardize_data (Opcional):**
-- `true` - Estandarizar (media=0, desviación=1)
-- `false` - Mantener valores originales
-
-#### **numeric_columns (Opcional):**
-- Array de columnas numéricas para normalizar/estandarizar
-- Ejemplo: `["edad", "salario", "experiencia"]`
-
-#### **remove_empty_rows (Opcional):**
-- `true` - Eliminar filas completamente vacías
-- `false` - Mantener filas vacías
-
-#### **remove_empty_columns (Opcional):**
-- `true` - Eliminar columnas completamente vacías
-- `false` - Mantener columnas vacías
-
-#### **convert_data_types (Opcional):**
-- `true` - Convertir texto a números automáticamente
-- `false` - Mantener tipos originales
-
-#### **trim_whitespace (Opcional):**
-- `true` - Eliminar espacios extra en textos
-- `false` - Mantener espacios
+**Ejemplo:**
+```json
+{
+    "trim_whitespace": true
+}
+```
 
 ---
 
-### **Respuesta de Limpieza:**
+### **📊 Respuesta de Limpieza:**
+
 ```json
 {
     "message": "Dataset limpiado exitosamente",
     "cleaned_dataset": {
         "id": 2,
-        "name": "Ventas_2024_limpio_1",
+        "name": "Empleados_limpio_1",
+        "description": "Dataset limpio aplicando: Eliminar espacios en blanco, Conversión automática de tipos, Rellenar con mediana/moda, Eliminar duplicados",
         "rows_count": 148,
         "columns_count": 12,
         "rows_removed": 2,
         "null_values_filled": 15,
-        "file_url": "/media/datasets/cleaned/cleaned_2.csv"
+        "file": "/media/datasets/cleaned/cleaned_1_2.csv",
+        "file_url": "http://localhost:8000/media/datasets/cleaned/cleaned_1_2.csv",
+        "original_dataset": 1,
+        "created_at": "2025-10-27T10:30:00Z"
     },
     "cleaning_report": {
         "methods_used": [
@@ -371,6 +653,43 @@ Content-Type: application/json
     }
 }
 ```
+
+---
+
+### **⚠️ CONSEJOS Y MEJORES PRÁCTICAS**
+
+#### **1. Orden de Operaciones:**
+El sistema aplica limpieza en este orden:
+1. Limpiar espacios (`trim_whitespace`)
+2. Eliminar filas vacías (`remove_empty_rows`)
+3. Eliminar columnas vacías (`remove_empty_columns`)
+4. Convertir tipos (`convert_data_types`)
+5. Manejar nulos (`null_strategy`)
+6. Eliminar duplicados (`remove_duplicates`)
+7. Eliminar outliers (`remove_outliers`)
+8. Normalizar (`normalize_data`)
+9. Estandarizar (`standardize_data`)
+
+#### **2. ¿Qué estrategia de nulos usar?**
+- **Datos financieros:** `fill_median` (resistente a outliers)
+- **Datos categóricos:** `fill_mode` (valor más común)
+- **Series temporales:** `fill_forward` o `fill_interpolate`
+- **Muchos datos:** `drop` (eliminar filas)
+- **Pocos datos:** `fill_median` o `fill_mode` (preservar filas)
+
+#### **3. ¿Normalizar o Estandarizar?**
+- **Normalizar (0-1):** Para redes neuronales, visualizaciones
+- **Estandarizar (Z-score):** Para algoritmos como SVM, regresión lineal
+- **Ninguno:** Para árboles de decisión, Random Forest
+
+#### **4. ¿Eliminar outliers?**
+- ✅ **SÍ:** Si son errores de medición
+- ❌ **NO:** Si son valores legítimos importantes
+- ⚠️ **CUIDADO:** Puedes perder información valiosa
+
+#### **5. target_columns vacío vs específico:**
+- **Vacío `[]`:** Más rápido, aplica a todo
+- **Específico:** Más control, preserva otras columnas
 
 ---
 
